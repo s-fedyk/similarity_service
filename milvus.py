@@ -45,5 +45,3 @@ res = client.search(
 )
 
 print(res)
-
-

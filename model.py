@@ -30,8 +30,9 @@ class ImageClassifier(object):
         
         return results
 
-    def extract_embedding(self, image_url):
-        result = DeepFace.represent(image_url, enforce_detection=False)
+    def extract_embedding(self, img_path):
+        print(f"Extracting embedding of {img_path}")
+        result = DeepFace.represent(img_path, enforce_detection=False)
 
         if not result:
             return None

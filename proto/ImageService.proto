@@ -11,4 +11,4 @@ message Image { string url = 1; }
 
 message IdentifyRequest { Image base_image = 1; }
 
-message IdentifyResponse { repeated Image comparison_images = 1; }
+message IdentifyResponse { repeated float embedding = 1; }

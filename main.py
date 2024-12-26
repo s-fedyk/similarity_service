@@ -3,34 +3,41 @@ import grpc
 from concurrent import futures
 import time
 
+import model
 from proto import ImageService_pb2
 from pymilvus import MilvusClient
 from proto import ImageService_pb2_grpc
+from deepface import DeepFace
 
 class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
     def Identify(self, request, context):
         print(f"identify-{time.time()} {request}")
-        base_image = request.base_image
 
         response = ImageService_pb2.IdentifyResponse()
-        response.comparison_images.append(base_image)
+
+        classifier = model.ImageClassifier()
+        embedding = classifier.extract_embedding("./face1.jpg")
+
+        for mfloat in embedding:
+            response.embedding.append(mfloat)
 
         return response
 
 def serve():
-    # Create a gRPC server
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     
-    # Add your servicer to the server
     ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
+
+    # initialization trick
+    DeepFace.build_model("VGG-Face")
     
-    # Listen on port 50051
     server.add_insecure_port('[::]:50051')
+
+    print("Starting server...")
     server.start()
-    print("Server started on port 50051")
+    print("Started!")
     
     try:
-        # Keep the server running
         while True:
             time.sleep(86400)
     except KeyboardInterrupt:

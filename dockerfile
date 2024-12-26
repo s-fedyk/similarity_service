@@ -6,6 +6,10 @@ ENV PYTHONUNBUFFERED=1
 # Set the working directory in the container
 WORKDIR /app
 
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+
+RUN mkdir -p /root/.deepface/weights && chmod -R 777 /root/.deepface
+
 # Copy just your requirements first (for caching)
 COPY requirements.txt .
 
