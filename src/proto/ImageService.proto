@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package ImageService;
+
+service ImageService {
+  // takes a reference image, and a list of images to compare against
+  rpc Identify(IdentifyRequest) returns (IdentifyResponse) {}
+}
+
+message Image {
+  string filename = 1;
+  string mime_type = 2;
+  bytes data = 3;
+}
+
+message IdentifyRequest {
+  Image base_image = 1;
+  repeated Image comparison_images = 2;
+}
+
+message IdentifyResponse { repeated Image comparison_images = 1; }
