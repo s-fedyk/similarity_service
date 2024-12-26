@@ -31,8 +31,12 @@ class ImageClassifier(object):
         return results
 
     def extract_embedding(self, image_url):
-        result = DeepFace.represent(image_url)[0]["embedding"]
-        return result
+        result = DeepFace.represent(image_url, enforce_detection=False)
+
+        if not result:
+            return None
+
+        return result[0]["embedding"]
 
 if __name__ == "__main__":
     base_image = "face1.jpg"
@@ -45,7 +49,4 @@ if __name__ == "__main__":
         print(result)
 
     embedding = classifier.extract_embedding("face1.jpg")
-    print(embedding) 
-    print(len(embedding))
-
     
