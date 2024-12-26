@@ -1,0 +1,16 @@
+# my-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: similarity-service
+  labels:
+    app: similarity-service
+spec:
+  type: ClusterIP
+  selector:
+    app: similarity-service
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 80            # The service's port (cluster-internal)
+      targetPort: 50051   # Matches containerPort from the Deployment
