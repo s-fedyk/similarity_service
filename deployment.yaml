@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: model-container
-        image: my-grpc-milvus-app:latest
+        image: pomidoro/similarity-service:1        
         ports:
         - containerPort: 50051  # the container's listening port
         # If you need environment variables, add them here
