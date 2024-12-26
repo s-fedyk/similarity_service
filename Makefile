@@ -4,7 +4,7 @@ kube: build
 	kubectl apply -f deployment.yaml
 	kubectl apply -f service.yaml
 teardown:
-	- kubectl delete deployment similarity-service
+	- kubectl delete deployment similarity-service-deployment
 	- kubectl delete service similarity-service
 build: clean
 	python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
