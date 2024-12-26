@@ -20,7 +20,7 @@ class ImageClassifier(object):
 
         for comparison_image in comparison_images:
             result = DeepFace.verify(base_image, comparison_image)
-            
+
             identified = False
 
             if result['verified']:
@@ -30,14 +30,22 @@ class ImageClassifier(object):
         
         return results
 
+    def extract_embedding(self, image_url):
+        result = DeepFace.represent(image_url)[0]["embedding"]
+        return result
+
 if __name__ == "__main__":
     base_image = "face1.jpg"
     comparison_images = ["face2.jpg", "face3.jpg", "face4.jpg"]
-
     classifier = ImageClassifier()
 
     results = classifier.process(base_image, comparison_images)
 
     for result in results:
         print(result)
+
+    embedding = classifier.extract_embedding("face1.jpg")
+    print(embedding) 
+    print(len(embedding))
+
     

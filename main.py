@@ -3,29 +3,19 @@ import grpc
 from concurrent import futures
 import time
 
-from proto import helloworld_pb2
-from proto import helloworld_pb2_grpc
-
 from proto import ImageService_pb2
+from pymilvus import MilvusClient
 from proto import ImageService_pb2_grpc
-
-
-# Define a class to implement the server functions (derived from GreeterServicer)
-class GreeterServicer(helloworld_pb2_grpc.GreeterServicer):
-    def SayHello(self, request, context):
-        # Implement the "SayHello" method
-        name = request.name
-        message = f"Hello, {name}!"
-        return helloworld_pb2.HelloReply(message=message)
 
 class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
     def Identify(self, request, context):
-
+        print(f"identify-{time.time()} {request}")
         base_image = request.base_image
-        comparison_images = request.comparison_images
 
-        return ImageService_pb2.IdentifyResponse()
+        response = ImageService_pb2.IdentifyResponse()
+        response.comparison_images.append(base_image)
 
+        return response
 
 def serve():
     # Create a gRPC server

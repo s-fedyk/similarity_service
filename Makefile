@@ -1,5 +1,6 @@
 build: clean
-	python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./src/proto/helloworld.proto
-	python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./src/proto/ImageService.proto
+	python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
+	docker build -t my-grpc-milvus-app .
+	docker run -p 50051:50051 my-grpc-milvus-app
 clean:
-	-rm ./src/proto/*.py
+	-rm ./proto/*.py
