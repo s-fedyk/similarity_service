@@ -1,6 +1,6 @@
 naive: build
 	docker run -p 50051:50051 -v $(HOME)/.deepface/weights:/root/.deepface/weights pomidoro/similarity-service:1
-kube: build
+kube:
 	kubectl apply -f deployment.yaml
 	kubectl apply -f service.yaml
 teardown:
