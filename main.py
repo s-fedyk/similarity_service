@@ -34,8 +34,7 @@ def serve():
     server.add_insecure_port('[::]:50051')
 
     print("Starting server...")
-    server.start()
-    print("Started!")
+    server.start() print("Started!")
     
     try:
         while True:
