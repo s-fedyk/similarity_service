@@ -1,4 +1,3 @@
-
 import grpc
 from concurrent import futures
 import time
@@ -9,6 +8,8 @@ from pymilvus import MilvusClient
 from proto import ImageService_pb2_grpc
 from deepface import DeepFace
 
+from redisClient import getFromRedis, initRedis
+
 class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
     def Identify(self, request, context):
         print(f"identify-{time.time()} {request}")
@@ -16,11 +17,18 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
         response = ImageService_pb2.IdentifyResponse()
 
         classifier = model.ImageClassifier()
-        embedding = classifier.extract_embedding("./face1.jpg")
+
+        print(request)
+ 
+        encodedImage = getFromRedis(request.base_image.url)
+        print(request.base_image.url)
+
+        embedding = classifier.extract_embedding(encodedImage)
 
         for mfloat in embedding:
             response.embedding.append(mfloat)
 
+        print("Response success!")
         return response
 
 def serve():
@@ -30,11 +38,13 @@ def serve():
 
     # initialization trick
     DeepFace.build_model("VGG-Face")
+    initRedis()
     
     server.add_insecure_port('[::]:50051')
 
     print("Starting server...")
-    server.start() print("Started!")
+    server.start() 
+    print("Started!")
     
     try:
         while True:

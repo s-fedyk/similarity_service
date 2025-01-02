@@ -4,3 +4,4 @@ tf-keras
 pymilvus
 deepface
 opencv-python
+redis

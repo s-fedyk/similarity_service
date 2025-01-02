@@ -1,0 +1,34 @@
+# my-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: similarity-service-deployment
+  labels:
+    app: similarity-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: similarity-service
+  template:
+    metadata:
+      labels:
+        app: similarity-service
+    spec:
+      containers:
+      - name: model-container
+        imagePullPolicy: Always
+        image: pomidoro/similarity-service:1        
+        ports:
+        - containerPort: 50051  # the container's listening port
+
+        envFrom:
+          - configMapRef:
+              name: similarity-service-config
+
+        # If you need environment variables, add them here
+        # env:
+        #   - name: MILVUS-HOST
+        #     value: "milvus"
+        #   - name: MILVUS-PORT
+        #     value: "19530"
