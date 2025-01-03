@@ -12,7 +12,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /root/.deepface/weights && chmod -R 777 /root/.deepface
 
+
 COPY . .
+
+RUN python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
 
 EXPOSE 50051
 

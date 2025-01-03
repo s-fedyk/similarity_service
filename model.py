@@ -34,6 +34,7 @@ class ImageClassifier(object):
 
     def extract_embedding(self, encodedImage, modelName="DeepFace"):
         print("Getting embedding...")
+        result = None
         try: 
             nparr = np.frombuffer(encodedImage, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -50,16 +51,3 @@ class ImageClassifier(object):
 
         print("Extracted!")
         return result[0]["embedding"]
-
-if __name__ == "__main__":
-    base_image = "face1.jpg"
-    comparison_images = ["face2.jpg", "face3.jpg", "face4.jpg"]
-    classifier = ImageClassifier()
-
-    results = classifier.process(base_image, comparison_images)
-
-    for result in results:
-        print(result)
-
-    embedding = classifier.extract_embedding("face1.jpg")
-    

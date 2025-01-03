@@ -23,7 +23,7 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
         encodedImage = getFromRedis(request.base_image.url)
         print(request.base_image.url)
 
-        embedding = classifier.extract_embedding(encodedImage)
+        embedding = classifier.extract_embedding(encodedImage, "VGG-Face")
 
         for mfloat in embedding:
             response.embedding.append(mfloat)
@@ -37,7 +37,7 @@ def serve():
     ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
 
     # initialization trick
-    DeepFace.build_model("DeepFace")
+    DeepFace.build_model("VGG-Face")
     initRedis()
     
     server.add_insecure_port('[::]:50051')

@@ -1,6 +1,6 @@
 grpcio
 grpcio-tools
-tensorflow==2.12 
+tensorflow[and-cuda]==2.12 
 tf-keras
 pymilvus
 deepface

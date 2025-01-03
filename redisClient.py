@@ -25,9 +25,15 @@ def initRedis():
     Gets raw bytes from the key in redis
 """
 def getFromRedis(key):
+    print("Retrieving from redis...")
     assert(redisClient is not None)
 
-    result = redisClient.get(key)
+    result = None
+    try:
+        result = redisClient.get(key)
+    except Exception as e:
+        print("Exception!")
+        print(e)
 
     if result: 
         print("Retrieved from redis!")
