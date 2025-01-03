@@ -13,7 +13,7 @@ def initRedis():
 
     assert(redisURL)
 
-    redisClient = redis.Redis(host=redisURL, port=6379, db=0, decode_responses=True)
+    redisClient = redis.Redis(host=redisURL, port=6379, db=0)
 
     if redisClient is None:
         print("Redis initialization failure!")
@@ -21,6 +21,9 @@ def initRedis():
         print("Redis initialization success!")
 
 
+"""
+    Gets raw bytes from the key in redis
+"""
 def getFromRedis(key):
     assert(redisClient is not None)
 

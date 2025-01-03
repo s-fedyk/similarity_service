@@ -20,11 +20,16 @@ client.create_collection(
 classifier = model.ImageClassifier()
 
 print("inserting images...")
-for imageName in os.listdir("images"):
-    embedding = classifier.extract_embedding(f"images/{imageName}")
-    client.insert(
-        "image_embeddings",
-        {"vector": embedding, "filename": imageName},
-    )
+
+files = os.listdir("img_align_celeba")
+for idx,imageName in enumerate(files):
+    print(f"{idx+1}/{len(files)}")
+    with open(f"img_align_celeba/{imageName}", "rb") as file:
+        contents = file.read()
+        embedding = classifier.extract_embedding(contents, "DeepFace")
+        client.insert(
+            "image_embeddings",
+            {"vector": embedding, "filename": imageName, "model": "DeepFace"},
+        )
 
 print("all images inserted")

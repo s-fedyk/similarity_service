@@ -37,7 +37,7 @@ def serve():
     ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
 
     # initialization trick
-    DeepFace.build_model("VGG-Face")
+    DeepFace.build_model("DeepFace")
     initRedis()
     
     server.add_insecure_port('[::]:50051')

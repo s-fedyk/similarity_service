@@ -1,3 +1,5 @@
+import numpy as np
+import cv2
 from deepface import DeepFace
 from deepface.modules.verification import find_distance, find_threshold
 
@@ -30,9 +32,17 @@ class ImageClassifier(object):
         
         return results
 
-    def extract_embedding(self, encodedImage):
+    def extract_embedding(self, encodedImage, modelName="DeepFace"):
         print("Getting embedding...")
-        result = DeepFace.represent(encodedImage, enforce_detection=False)
+        try: 
+            nparr = np.frombuffer(encodedImage, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            result = DeepFace.represent(img, enforce_detection=False, model_name=modelName)
+        except Exception as e:
+            print("Catching Exception!")
+            print(e)
+
 
         if not result:
             print("No embedding!")
