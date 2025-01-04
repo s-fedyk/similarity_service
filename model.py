@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 from deepface import DeepFace
-from deepface.modules.verification import find_distance, find_threshold
 
 class ImageClassifier(object):
     def __init__(self):
