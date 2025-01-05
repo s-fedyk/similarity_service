@@ -3,6 +3,7 @@
 # --------------------------------------------------
 FROM amazonlinux:2023 AS builder
 
+# Install build dependencies
 RUN dnf update -y && dnf install -y \
     gcc \
     openssl-devel \
@@ -14,6 +15,7 @@ RUN dnf update -y && dnf install -y \
     tar \
     gzip
 
+# Download and build Python 3.12.3
 RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz && \
     tar xzf Python-3.10.0.tgz && \
     cd Python-3.10.0 && \
@@ -28,7 +30,6 @@ FROM amazonlinux:2023
 COPY --from=builder /usr/local/bin/python3.10 /usr/local/bin/
 COPY --from=builder /usr/local/bin/pip3.10 /usr/local/bin/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
-
 
 RUN tee /etc/yum.repos.d/neuron.repo > /dev/null <<EOF
 [neuron]
