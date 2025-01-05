@@ -5,6 +5,7 @@ dev:
 	kubectl apply -f k8s/dev/deployment.yaml
 	kubectl apply -f k8s/dev/service.yaml
 prod:
+	kubectl apply -f k8s/prod/configmap.yaml
 	kubectl apply -f k8s/prod/deployment.yaml
 	kubectl apply -f k8s/prod/service.yaml
 teardown:
