@@ -55,14 +55,12 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip3.10 install --no-cache-dir -r requirements.txt
 
 RUN python3.10 -m pip config set global.extra-index-url https://pip.repos.neuron.amazonaws.com
-RUN python3.10 -m pip install tensorflow-neuron[cc] "protobuf"
-RUN python3.10 -m pip install tensorboard-plugin-neuron
-RUN python3.10 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
+RUN python3.10 -m pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN python3.10 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
 
 EXPOSE 50051
 

@@ -1,6 +1,8 @@
 grpcio
 grpcio-tools
 tensorflow
+tensorflow-neuron[cc]
+tensorboard-plugin-neuron
 tf-keras
 pymilvus
 deepface

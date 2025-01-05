@@ -12,7 +12,6 @@ teardown:
 	- kubectl delete service similarity-service
 	- kubectl delete configmap similarity-service-config
 build: clean
-	python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
 	docker build -t pomidoro/similarity-service:1 .
 	docker push docker.io/pomidoro/similarity-service:1
 clean:
