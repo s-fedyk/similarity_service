@@ -1,9 +1,8 @@
 # --------------------------------------------------
-# Stage 1: Build Python 3.12.3 from source
+# Build Python 3.10.0 from source
 # --------------------------------------------------
 FROM amazonlinux:2023 AS builder
 
-# Install build dependencies
 RUN dnf update -y && dnf install -y \
     gcc \
     openssl-devel \
@@ -15,20 +14,17 @@ RUN dnf update -y && dnf install -y \
     tar \
     gzip
 
-# Download and build Python 3.12.3
 RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz && \
     tar xzf Python-3.10.0.tgz && \
     cd Python-3.10.0 && \
     ./configure --enable-optimizations && \
     make altinstall
 
-
 # --------------------------------------------------
-# Stage 2: Final runtime image
+# Final runtime image
 # --------------------------------------------------
 FROM amazonlinux:2023
 
-# Copy Python 3.12.3 binaries from the builder stage
 COPY --from=builder /usr/local/bin/python3.10 /usr/local/bin/
 COPY --from=builder /usr/local/bin/pip3.10 /usr/local/bin/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
@@ -57,15 +53,15 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Example: install your requirements
 COPY requirements.txt .
 RUN pip3.10 install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your app
-COPY . .
-
-# Example compilation of your .proto files (if needed)
+RUN python3.10 -m pip config set global.extra-index-url https://pip.repos.neuron.amazonaws.com
+RUN python3.10 -m pip install tensorflow-neuron[cc] "protobuf"
+RUN python3.10 -m pip install tensorboard-plugin-neuron
 RUN python3.10 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
+
+COPY . .
 
 EXPOSE 50051
 
