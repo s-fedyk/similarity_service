@@ -36,13 +36,14 @@ class ImageClassifier(object):
         result = None
         try: 
             nparr = np.frombuffer(encodedImage, np.uint8)
+            print(len(nparr))
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            print(len(img))
 
-            result = DeepFace.represent(img, enforce_detection=False, model_name=modelName)
+            result = DeepFace.represent(img, enforce_detection=False, model_name=modelName, detector_backend="opencv")
         except Exception as e:
             print("Catching Exception!")
             print(e)
-
 
         if not result:
             print("No embedding!")
