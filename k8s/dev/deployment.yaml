@@ -21,7 +21,6 @@ spec:
         image: pomidoro/similarity-service:1        
         ports:
         - containerPort: 50051  # the container's listening port
-
         envFrom:
           - configMapRef:
               name: similarity-service-config
