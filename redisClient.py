@@ -15,10 +15,17 @@ def initRedis():
 
     redisClient = redis.Redis(host=redisURL, port=6379, db=0)
 
-    if redisClient is None:
-        print("Redis initialization failure!")
-    else:
-        print("Redis initialization success!")
+    #raises exception if conn fails
+    try:
+        redisClient.ping()
+    except Exception as e:
+        print(f"Redis Initializion failure, err=({e})")
+        return
+
+    print("Redis initialization success!")
+    return
+
+    
 
 
 """
