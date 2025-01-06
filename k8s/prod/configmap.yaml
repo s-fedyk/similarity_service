@@ -4,4 +4,4 @@ metadata:
   name: similarity-service-config
   namespace: default
 data:
-  REDIS_URL: "clustercfg.similarity-app-image-cache.wutpwp.use2.cache.amazonaws.com"
+  REDIS_URL: "similarity-image-cache.wutpwp.ng.0001.use2.cache.amazonaws.com:"
