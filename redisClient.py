@@ -25,9 +25,6 @@ def initRedis():
     print("Redis initialization success!")
     return
 
-    
-
-
 """
     Gets raw bytes from the key in redis
 """

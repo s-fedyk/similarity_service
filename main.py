@@ -2,13 +2,12 @@ import grpc
 from concurrent import futures
 import time
 
+from S3Client import getFromS3, initS3
 import model
 from proto import ImageService_pb2
 from pymilvus import MilvusClient
 from proto import ImageService_pb2_grpc
 from deepface import DeepFace
-
-from redisClient import getFromRedis, initRedis
 
 class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
     def Identify(self, request, context):
@@ -20,10 +19,10 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
 
         print(request)
  
-        encodedImage = getFromRedis(request.base_image.url)
+        encodedImage = getFromS3(request.base_image.url)
         print(request.base_image.url)
 
-        embedding = classifier.extract_embedding(encodedImage, "VGG-Face")
+        embedding = classifier.extract_embedding(encodedImage, "Facenet512")
 
         for mfloat in embedding:
             response.embedding.append(mfloat)
@@ -35,11 +34,10 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     
     ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
-
+    initS3()
     # initialization trick
-    DeepFace.build_model("VGG-Face")
-    initRedis()
-    
+    DeepFace.build_model("Facenet512")
+        
     server.add_insecure_port('[::]:50051')
 
     print("Starting server...")

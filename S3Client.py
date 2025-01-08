@@ -18,25 +18,26 @@ def initS3():
     if not bucket_name:
         raise ValueError("S3_BUCKET environment variable is not set")
 
-    aws_region = os.getenv("AWS_REGION", "us-east-2")
+    aws_region = "us-east-2"
 
     aws_access_key_id = os.getenv("S3_ACCESS_KEY", "")
     aws_access_key_secret = os.getenv("S3_ACCESS_SECRET","")
     
     try:
-        config = Config()
-        if (os.getenv("ENV") != "DEV"):
-            # don't sign inside vpc
-            config=Config(signature_version=UNSIGNED)
+        s3_client = None
+        if os.getenv("ENV") == "DEV":
+            s3_client = boto3.client(
+                "s3", 
+                region_name=aws_region,
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_access_key_secret,
+            )
+        else:
+            s3_client = boto3.client(
+                "s3", 
+                region_name=aws_region,
+            )
 
-        s3_client = boto3.client(
-            "s3", 
-            region_name=aws_region,
-            config=config,
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_access_key_secret,
-        )
-        # Check if the bucket exists and is accessible
         s3_client.head_bucket(Bucket=bucket_name)
         print("S3 initialization success!")
     except (BotoCoreError, ClientError) as e:

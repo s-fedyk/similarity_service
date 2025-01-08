@@ -31,7 +31,7 @@ class ImageClassifier(object):
         
         return results
 
-    def extract_embedding(self, encodedImage, modelName="DeepFace"):
+    def extract_embedding(self, encodedImage, modelName="Facenet512"):
         print("Getting embedding...")
         result = None
         try: 
@@ -40,7 +40,7 @@ class ImageClassifier(object):
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             print(len(img))
 
-            result = DeepFace.represent(img, enforce_detection=False, model_name=modelName, detector_backend="opencv")
+            result = DeepFace.represent(img, enforce_detection=False, model_name=modelName, detector_backend="retinaface")
         except Exception as e:
             print("Catching Exception!")
             print(e)
