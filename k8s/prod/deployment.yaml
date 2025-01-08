@@ -20,7 +20,7 @@ spec:
       containers:
       - name: model-container
         imagePullPolicy: Always
-        image: pomidoro/similarity-service:1        
+        image: pomidoro/similarity-service:1
         ports:
         - containerPort: 50051  # the container's listening port
         envFrom:
