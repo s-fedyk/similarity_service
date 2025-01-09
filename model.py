@@ -1,3 +1,4 @@
+from deepface.models.face_detection.RetinaFace import RetinaFaceClient
 import numpy as np
 import S3Client
 import tensorflow_neuron as tfn
@@ -53,9 +54,22 @@ class ImageClassifier(object):
     def __init__(self):
         DeepFace.build_model("Facenet512")
 
-        client = DeepFace.modeling.cached_models["facial_recognition"]["Facenet512"]
+        facenetClient= DeepFace.modeling.cached_models["facial_recognition"]["Facenet512"]
         
-        client.model = download_and_extract_model("facenet512_neuron")
+        facenetClient.model = download_and_extract_model("facenet512_neuron")
+        print("model is setup")
+
+        retinafaceClient = RetinaFaceClient()
+        DeepFace.modeling.cached_models["face_detector"]["retinaface"] = retinafaceClient
+
+        neuron_model = download_and_extract_model("retinaface_neuron")
+
+        model = tf.function(
+                    neuron_model,
+                    input_signature=(tf.TensorSpec(shape=[None, None, None, 3], dtype=np.float32),),
+                )
+
+        retinafaceClient.model = model
 
         return
 
