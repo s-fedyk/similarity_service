@@ -10,7 +10,8 @@ import tensorflow_neuron as tfn
 
 # Load your .h5 model
 os.environ["NEURON_CC_FLAGS"] = "--neuroncore-pipeline-cores=4 --verbose DEBUG --extract-weights inf1.xlarge"
-
+os.environ["NEURONCORE_GROUP_SIZES"] = "4"
+os.environ["XLA_USE_BF16"] = "1"
 
 """
 model = load_facenet512d_model()
