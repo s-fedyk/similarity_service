@@ -60,8 +60,3 @@ def getFromS3(key, bucket):
     except (BotoCoreError, ClientError) as e:
         print(f"Failed to retrieve from S3: {e}")
         return None
-
-
-aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-2.amazonaws.com
-
-763104351884.dkr.ecr.us-east-2.amazonaws.com

@@ -115,16 +115,22 @@ RUN ${PIP} install --no-cache-dir \
 RUN ${PIP} install neuronx-cc==${NEURONX_CC_VERSION} tensorflow-neuronx==${NEURONX_FRAMEWORK_VERSION} --extra-index-url https://pip.repos.neuron.amazonaws.com \
  && ${PIP} install tensorboard-plugin-neuron --extra-index-url https://pip.repos.neuron.amazonaws.com
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
 # Some TF tools expect a "python" binary
 RUN ln -s $(which ${PYTHON}) /usr/local/bin/python \
  && ln -s $(which ${PIP}) /usr/bin/pip
 
 RUN curl https://tensorflow-aws.s3-us-west-2.amazonaws.com/MKL-Libraries/libiomp5.so -o /usr/local/lib/libiomp5.so
 RUN curl https://tensorflow-aws.s3-us-west-2.amazonaws.com/MKL-Libraries/libmklml_intel.so -o /usr/local/lib/libmklml_intel.so
-
-# Expose ports
-# gRPC and REST
-EXPOSE 8500 8501
 
 RUN HOME_DIR=/root \
  && curl -o ${HOME_DIR}/oss_compliance.zip https://aws-dlinfra-utilities.s3.amazonaws.com/oss_compliance.zip \
@@ -137,10 +143,14 @@ RUN HOME_DIR=/root \
 
 RUN curl https://aws-dlc-licenses.s3.amazonaws.com/tensorflow-$TFS_SHORT_VERSION/license.txt -o /license.txt
 
-RUN ${PIP} install --no-cache-dir -r requirements.txt
+COPY requirements.txt .
+RUN ${PIP} freeze > base_requirements.txt
+RUN ${PIP} install --no-cache-dir -r requirements.txt -c base_requirements.txt
 
 COPY . .
 
 RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
+
+EXPOSE 50051
 
 CMD ["python3.10", "main.py"]

@@ -26,9 +26,8 @@ spec:
         envFrom:
           - configMapRef:
               name: similarity-service-config
-        # If you need environment variables, add them here
-        # env:
-        #   - name: MILVUS-HOST
-        #     value: "milvus"
-        #   - name: MILVUS-PORT
-        #     value: "19530"
+        resources:
+          limits:
+            aws.amazon.com/Inferentia: 1
+          requests:
+            aws.amazon.com/Inferentia: 1
