@@ -126,19 +126,6 @@ RUN curl https://tensorflow-aws.s3-us-west-2.amazonaws.com/MKL-Libraries/libmklm
 # gRPC and REST
 EXPOSE 8500 8501
 
-# Set where models should be stored in the container
-RUN mkdir -p ${MODEL_BASE_PATH}
-
-# Create a script that runs the model server so we can use environment variables
-# while also passing in arguments from the docker command line
-RUN echo '#!/bin/bash \n\n' > /usr/local/bin/entrypoint.sh \
- && echo '/usr/local/bin/tensorflow_model_server_neuron --port=8500 --rest_api_port=8501 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME} "$@"' >> /usr/local/bin/entrypoint.sh \
- && chmod +x /usr/local/bin/entrypoint.sh
-
-COPY deep_learning_container.py /usr/local/bin/deep_learning_container.py
-
-RUN chmod +x /usr/local/bin/deep_learning_container.py
-
 RUN HOME_DIR=/root \
  && curl -o ${HOME_DIR}/oss_compliance.zip https://aws-dlinfra-utilities.s3.amazonaws.com/oss_compliance.zip \
  && unzip ${HOME_DIR}/oss_compliance.zip -d ${HOME_DIR}/ \
