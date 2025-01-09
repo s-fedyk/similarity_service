@@ -28,6 +28,4 @@ spec:
               name: similarity-service-config
         resources:
           limits:
-            aws.amazon.com/Inferentia: 1
-          requests:
-            aws.amazon.com/Inferentia: 1
+            aws.amazon.com/neuron: 1
