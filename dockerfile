@@ -7,18 +7,19 @@ LABEL dlc_major_version="1"
 # https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipeline-real-time.html
 LABEL com.amazonaws.sagemaker.capabilities.accept-bind-to-port=true
 
-ARG PYTHON=python3.8
+ARG PYTHON=python3.10
 ARG PYTHON_PIP=python3-pip
 ARG PIP=pip3
-ARG PYTHON_VERSION=3.8.16
+ARG PYTHON_VERSION=3.10.12
 ARG TFS_SHORT_VERSION=2.10
 
 # Neuron SDK components version numbers
-ARG NEURONX_RUNTIME_LIB_VERSION=2.12.*
-ARG NEURONX_TOOLS_VERSION=2.9.*
-ARG NEURONX_FRAMEWORK_VERSION=2.10.1.2.0.*
-ARG NEURONX_TF_MODEL_SERVER_VERSION=2.10.1.2.7.*
-ARG NEURONX_CC_VERSION=2.5.*
+ARG NEURONX_RUNTIME_LIB_VERSION=2.16.*
+ARG NEURONX_COLLECTIVES_LIB_VERSION=2.16.*
+ARG NEURONX_TOOLS_VERSION=2.13.*
+ARG NEURONX_FRAMEWORK_VERSION=2.10.1.2.1.*
+ARG NEURONX_TF_MODEL_SERVER_VERSION=2.10.1.2.10.1.*
+ARG NEURONX_CC_VERSION=2.9.*
 
 # See http://bugs.python.org/issue19846
 ENV LANG=C.UTF-8
@@ -27,7 +28,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV SAGEMAKER_TFS_VERSION="${TFS_SHORT_VERSION}"
 ENV PATH="/opt/aws/neuron/bin:$PATH:/sagemaker"
-ENV LD_LIBRARY_PATH='/usr/local/lib:$LD_LIBRARY_PATH'
+ENV LD_LIBRARY_PATH='/opt/aws/neuron/lib:/usr/local/lib:$LD_LIBRARY_PATH'
 ENV MODEL_BASE_PATH=/models
 # The only required piece is the model name in order to differentiate endpoints
 ENV MODEL_NAME=model
@@ -70,7 +71,7 @@ RUN apt-get update \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# Install python3.8
+# Install python3.10
 RUN wget https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz \
  && tar -xvf Python-$PYTHON_VERSION.tgz \
  && cd Python-$PYTHON_VERSION \
@@ -85,6 +86,7 @@ RUN apt-get update
 RUN apt-get install -y \
     tensorflow-model-server-neuronx=${NEURONX_TF_MODEL_SERVER_VERSION} \
     aws-neuronx-tools=${NEURONX_TOOLS_VERSION} \
+    aws-neuronx-collectives=${NEURONX_COLLECTIVES_LIB_VERSION} \
     aws-neuronx-runtime-lib=${NEURONX_RUNTIME_LIB_VERSION} \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
@@ -102,7 +104,7 @@ RUN ${PIP} install --no-cache-dir \
     gunicorn==20.1.* \
     gevent==21.12.* \
     requests \
-    grpcio==1.34.* \
+    grpcio==1.56.0 \
     "protobuf<4" \
 # using --no-dependencies to avoid installing tensorflow binary
  && ${PIP} install --no-dependencies --no-cache-dir \
@@ -112,7 +114,6 @@ RUN ${PIP} install --no-cache-dir \
 # resolve package dependencies during installation.
 RUN ${PIP} install neuronx-cc==${NEURONX_CC_VERSION} tensorflow-neuronx==${NEURONX_FRAMEWORK_VERSION} --extra-index-url https://pip.repos.neuron.amazonaws.com \
  && ${PIP} install tensorboard-plugin-neuron --extra-index-url https://pip.repos.neuron.amazonaws.com
-
 
 # Some TF tools expect a "python" binary
 RUN ln -s $(which ${PYTHON}) /usr/local/bin/python \
@@ -130,6 +131,13 @@ RUN mkdir -p ${MODEL_BASE_PATH}
 
 # Create a script that runs the model server so we can use environment variables
 # while also passing in arguments from the docker command line
+RUN echo '#!/bin/bash \n\n' > /usr/local/bin/entrypoint.sh \
+ && echo '/usr/local/bin/tensorflow_model_server_neuron --port=8500 --rest_api_port=8501 --model_name=${MODEL_NAME} --model_base_path=${MODEL_BASE_PATH}/${MODEL_NAME} "$@"' >> /usr/local/bin/entrypoint.sh \
+ && chmod +x /usr/local/bin/entrypoint.sh
+
+COPY deep_learning_container.py /usr/local/bin/deep_learning_container.py
+
+RUN chmod +x /usr/local/bin/deep_learning_container.py
 
 RUN HOME_DIR=/root \
  && curl -o ${HOME_DIR}/oss_compliance.zip https://aws-dlinfra-utilities.s3.amazonaws.com/oss_compliance.zip \
@@ -142,7 +150,10 @@ RUN HOME_DIR=/root \
 
 RUN curl https://aws-dlc-licenses.s3.amazonaws.com/tensorflow-$TFS_SHORT_VERSION/license.txt -o /license.txt
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +X /usr/local/bin/entrypoint.sh
+RUN ${PIP} install --no-cache-dir -r requirements.txt
 
-CMD ["/usr/local/bin/entrypoint.sh"]
+COPY . .
+
+RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
+
+CMD ["python3.10", "main.py"]
