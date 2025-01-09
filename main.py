@@ -3,29 +3,25 @@ from concurrent import futures
 import time
 
 from S3Client import getFromS3, initS3
+import S3Client
 import model
 from proto import ImageService_pb2
-from pymilvus import MilvusClient
 from proto import ImageService_pb2_grpc
-from deepface import DeepFace
+
+# singleton
+classifier = None
 
 class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
     def Identify(self, request, context):
         print(f"identify-{time.time()} {request}")
+        global classifier
 
-        response = ImageService_pb2.IdentifyResponse()
-
-        classifier = model.ImageClassifier()
-
-        print(request)
- 
-        encodedImage = getFromS3(request.base_image.url)
-        print(request.base_image.url)
+        encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
         embedding = classifier.extract_embedding(encodedImage, "Facenet512")
 
-        for mfloat in embedding:
-            response.embedding.append(mfloat)
+        response = ImageService_pb2.IdentifyResponse()
+        response.embedding.extend(embedding)
 
         print("Response success!")
         return response
@@ -35,9 +31,9 @@ def serve():
     
     ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
     initS3()
-    # initialization trick
-    DeepFace.build_model("Facenet512")
-        
+    global classifier 
+    classifier = model.ImageClassifier()
+
     server.add_insecure_port('[::]:50051')
 
     print("Starting server...")

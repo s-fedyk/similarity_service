@@ -1,35 +1,63 @@
 import numpy as np
+import S3Client
+import tensorflow_neuron as tfn
+import zipfile
+import tempfile
+from deepface.models.facial_recognition.Facenet  import FaceNet512dClient, load_facenet512d_model 
+import tensorflow as tf
 import cv2
+import os
 from deepface import DeepFace
+
+def download_and_extract_model(model, extract_dir="./"):
+    """
+    Downloads a model archive from S3 and extracts it to the specified directory.
+    """
+    print(f"Downloading {model}")
+    model_bytes = S3Client.getFromS3(f"{model}.zip", "similarity-model-store")
+    if model_bytes is None:
+        raise ValueError(f"Failed to download model: {model}")
+    
+    # Save the model to a temporary zip file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
+        tmp_file.write(model_bytes)
+        tmp_file_path = tmp_file.name
+        print(f"Model downloaded and saved to temporary file: {tmp_file_path}")
+    
+    # Extract the zip file to the extract_dir
+    with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_dir)
+        print()
+        print(f"Model extracted to directory: {extract_dir}")
+    
+    # Remove the temporary zip file
+    os.remove(tmp_file_path)
+    print(f"Temporary file {tmp_file_path} removed.")
+
+    model = tf.keras.models.load_model(f"{extract_dir}/{model}")
+
+    print(model.summary())
+    print("model download success!")
+
+    return model
+
+class NeuronWrappedModel(tf.keras.Model):
+    def __init__(self, neuron_model):
+        super(NeuronWrappedModel, self).__init__()
+        self.neuron_model = neuron_model
+
+    def call(self, inputs):
+        return self.neuron_model(inputs)
 
 class ImageClassifier(object):
     def __init__(self):
-        pass
+        DeepFace.build_model("Facenet512")
 
-    def preprocess(self, image):
-        pre_processed_image = image
-        return image
-
-    def process(self, base_image, comparison_images):
-        images = [base_image] + comparison_images
-        pre_processed_images = list(map(self.preprocess, images))
-
-        base_image = pre_processed_images[0]
-        comparison_images = pre_processed_images[1:]
-
-        results = []
-
-        for comparison_image in comparison_images:
-            result = DeepFace.verify(base_image, comparison_image)
-
-            identified = False
-
-            if result['verified']:
-                identified = True
-            
-            results.append(identified)
+        client = DeepFace.modeling.cached_models["facial_recognition"]["Facenet512"]
         
-        return results
+        client.model = download_and_extract_model("facenet512_neuron")
+
+        return
 
     def extract_embedding(self, encodedImage, modelName="Facenet512"):
         print("Getting embedding...")

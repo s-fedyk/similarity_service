@@ -1,11 +1,5 @@
-grpcio
-grpcio-tools
-tensorflow
-#tensorflow-neuron[cc]
-#tensorboard-plugin-neuron
-tf-keras
-pymilvus
 deepface
 opencv-python
-redis
 boto3
+grpcio-tools
+mmh3

@@ -44,17 +44,24 @@ def initS3():
         print(f"S3 Initialization failure: {e}")
         raise
 
-def getFromS3(key):
+def getFromS3(key, bucket):
     """
     Retrieves raw bytes from S3 for the given key.
     """
+
+    print("Getting from S3...")
     assert s3_client is not None, "S3 client not initialized"
     assert bucket_name is not None, "Bucket name not set"
 
     try:
-        response = s3_client.get_object(Bucket=bucket_name, Key=key)
+        response = s3_client.get_object(Bucket=bucket, Key=key)
         print(f"Retrieved from S3 with key: {key}")
         return response["Body"].read()
     except (BotoCoreError, ClientError) as e:
         print(f"Failed to retrieve from S3: {e}")
         return None
+
+
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-2.amazonaws.com
+
+763104351884.dkr.ecr.us-east-2.amazonaws.com

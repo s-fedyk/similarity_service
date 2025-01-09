@@ -1,67 +1,148 @@
-# --------------------------------------------------
-# Build Python 3.10.0 from source
-# --------------------------------------------------
-FROM amazonlinux:2023 AS builder
+FROM ubuntu:20.04
 
-# Install build dependencies
-RUN dnf update -y && dnf install -y \
-    gcc \
-    openssl-devel \
-    bzip2-devel \
-    libffi-devel \
-    zlib-devel \
-    make \
-    wget \
-    tar \
-    gzip
+LABEL maintainer="Amazon AI"
+#SDK 1.17.1 has version 1. We skipped 1.18.0.
+LABEL dlc_major_version="1"
+# Specify accept-bind-to-port LABEL for inference pipelines to use SAGEMAKER_BIND_TO_PORT
+# https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipeline-real-time.html
+LABEL com.amazonaws.sagemaker.capabilities.accept-bind-to-port=true
 
-# Download and build Python 3.12.3
-RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz && \
-    tar xzf Python-3.10.0.tgz && \
-    cd Python-3.10.0 && \
-    ./configure --enable-optimizations && \
-    make altinstall
+ARG PYTHON=python3.8
+ARG PYTHON_PIP=python3-pip
+ARG PIP=pip3
+ARG PYTHON_VERSION=3.8.16
+ARG TFS_SHORT_VERSION=2.10
 
-# --------------------------------------------------
-# Final runtime image
-# --------------------------------------------------
-FROM amazonlinux:2023
+# Neuron SDK components version numbers
+ARG NEURONX_RUNTIME_LIB_VERSION=2.12.*
+ARG NEURONX_TOOLS_VERSION=2.9.*
+ARG NEURONX_FRAMEWORK_VERSION=2.10.1.2.0.*
+ARG NEURONX_TF_MODEL_SERVER_VERSION=2.10.1.2.7.*
+ARG NEURONX_CC_VERSION=2.5.*
 
-COPY --from=builder /usr/local/bin/python3.10 /usr/local/bin/
-COPY --from=builder /usr/local/bin/pip3.10 /usr/local/bin/
-COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
-
-RUN tee /etc/yum.repos.d/neuron.repo > /dev/null <<EOF
-[neuron]
-name=Neuron YUM Repository
-baseurl=https://yum.repos.neuron.amazonaws.com
-enabled=1
-metadata_expire=0
-EOF
-
-RUN rpm --import https://yum.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB
-RUN yum update -y
-RUN yum install aws-neuronx-dkms-2.* -y
-RUN yum install aws-neuronx-collectives -y
-RUN yum install aws-neuronx-runtime-lib -y
-RUN yum install aws-neuronx-tools-2.* -y
-
-RUN dnf install -y mesa-libGL
-
-RUN python3.10 --version
-
+# See http://bugs.python.org/issue19846
+ENV LANG=C.UTF-8
+# Python won’t try to write .pyc or .pyo files on the import of source modules
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV SAGEMAKER_TFS_VERSION="${TFS_SHORT_VERSION}"
+ENV PATH="/opt/aws/neuron/bin:$PATH:/sagemaker"
+ENV LD_LIBRARY_PATH='/usr/local/lib:$LD_LIBRARY_PATH'
+ENV MODEL_BASE_PATH=/models
+# The only required piece is the model name in order to differentiate endpoints
+ENV MODEL_NAME=model
+ENV DEBIAN_FRONTEND=noninteractive
 
-WORKDIR /app
+# nginx + njs
+RUN apt-get update \
+ && apt-get upgrade -y \
+ && apt-get -y upgrade --only-upgrade systemd \
+ && apt-get -y install --no-install-recommends \
+    curl \
+    gnupg2 \
+    ca-certificates \
+    emacs \
+    git \
+    unzip \
+    wget \
+    vim \
+    libbz2-dev \
+    liblzma-dev \
+    libffi-dev \
+    build-essential \
+    zlib1g-dev \
+    openssl \
+    libssl1.1 \
+    libreadline-gplv2-dev \
+    libncursesw5-dev \
+    libssl-dev \
+    libsqlite3-dev \
+    tk-dev \
+    libgdbm-dev \
+    libcap-dev \
+    libc6-dev \
+ && curl -s http://nginx.org/keys/nginx_signing.key | apt-key add - \
+ && echo 'deb http://nginx.org/packages/ubuntu/ focal nginx' >> /etc/apt/sources.list \
+ && apt-get update \
+ && apt-get -y install --no-install-recommends \
+    nginx=1.20.1* \
+    nginx-module-njs=1.20.1* \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+# Install python3.8
+RUN wget https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tgz \
+ && tar -xvf Python-$PYTHON_VERSION.tgz \
+ && cd Python-$PYTHON_VERSION \
+ && ./configure && make && make install \
+ && rm -rf ../Python-$PYTHON_VERSION* \
+ && rm -rf /tmp/tmp*
 
-RUN python3.10 -m pip config set global.extra-index-url https://pip.repos.neuron.amazonaws.com
-RUN python3.10 -m pip install --no-cache-dir -r requirements.txt
+RUN echo "deb https://apt.repos.neuron.amazonaws.com focal main" > /etc/apt/sources.list.d/neuron.list
+RUN wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add -
+RUN apt-get update
 
-COPY . .
-RUN python3.10 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
+RUN apt-get install -y \
+    tensorflow-model-server-neuronx=${NEURONX_TF_MODEL_SERVER_VERSION} \
+    aws-neuronx-tools=${NEURONX_TOOLS_VERSION} \
+    aws-neuronx-runtime-lib=${NEURONX_RUNTIME_LIB_VERSION} \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 50051
+RUN ${PIP} --no-cache-dir install --upgrade \
+    pip \
+    setuptools
 
-CMD ["python3.10", "main.py"]
+# cython, falcon, gunicorn, grpc
+RUN ${PIP} install --no-cache-dir \
+    "awscli<2" \
+    boto3 \
+    cython==0.29.* \
+    falcon==2.* \
+    gunicorn==20.1.* \
+    gevent==21.12.* \
+    requests \
+    grpcio==1.34.* \
+    "protobuf<4" \
+# using --no-dependencies to avoid installing tensorflow binary
+ && ${PIP} install --no-dependencies --no-cache-dir \
+    tensorflow-serving-api==2.10.1
+
+# pip install statements have been separated out into multiple sequentially executed statements to
+# resolve package dependencies during installation.
+RUN ${PIP} install neuronx-cc==${NEURONX_CC_VERSION} tensorflow-neuronx==${NEURONX_FRAMEWORK_VERSION} --extra-index-url https://pip.repos.neuron.amazonaws.com \
+ && ${PIP} install tensorboard-plugin-neuron --extra-index-url https://pip.repos.neuron.amazonaws.com
+
+
+# Some TF tools expect a "python" binary
+RUN ln -s $(which ${PYTHON}) /usr/local/bin/python \
+ && ln -s $(which ${PIP}) /usr/bin/pip
+
+RUN curl https://tensorflow-aws.s3-us-west-2.amazonaws.com/MKL-Libraries/libiomp5.so -o /usr/local/lib/libiomp5.so
+RUN curl https://tensorflow-aws.s3-us-west-2.amazonaws.com/MKL-Libraries/libmklml_intel.so -o /usr/local/lib/libmklml_intel.so
+
+# Expose ports
+# gRPC and REST
+EXPOSE 8500 8501
+
+# Set where models should be stored in the container
+RUN mkdir -p ${MODEL_BASE_PATH}
+
+# Create a script that runs the model server so we can use environment variables
+# while also passing in arguments from the docker command line
+
+RUN HOME_DIR=/root \
+ && curl -o ${HOME_DIR}/oss_compliance.zip https://aws-dlinfra-utilities.s3.amazonaws.com/oss_compliance.zip \
+ && unzip ${HOME_DIR}/oss_compliance.zip -d ${HOME_DIR}/ \
+ && cp ${HOME_DIR}/oss_compliance/test/testOSSCompliance /usr/local/bin/testOSSCompliance \
+ && chmod +x /usr/local/bin/testOSSCompliance \
+ && chmod +x ${HOME_DIR}/oss_compliance/generate_oss_compliance.sh \
+ && ${HOME_DIR}/oss_compliance/generate_oss_compliance.sh ${HOME_DIR} ${PYTHON} \
+ && rm -rf ${HOME_DIR}/oss_compliance*
+
+RUN curl https://aws-dlc-licenses.s3.amazonaws.com/tensorflow-$TFS_SHORT_VERSION/license.txt -o /license.txt
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +X /usr/local/bin/entrypoint.sh
+
+CMD ["/usr/local/bin/entrypoint.sh"]
