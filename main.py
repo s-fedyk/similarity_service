@@ -18,10 +18,15 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
 
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
-        embedding = classifier.extract_embedding(encodedImage, "Facenet512")
+        embedding,faceArea = classifier.extract_embedding(encodedImage, "Facenet512")
 
         response = ImageService_pb2.IdentifyResponse()
         response.embedding.extend(embedding)
+
+        response.facial_area.w = faceArea["w"]
+        response.facial_area.h = faceArea["h"]
+        response.facial_area.x = faceArea["x"]
+        response.facial_area.y = faceArea["y"]
 
         print("Response success!")
         return response

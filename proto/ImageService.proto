@@ -9,6 +9,20 @@ service ImageService {
 
 message Image { string url = 1; }
 
-message IdentifyRequest { Image base_image = 1; }
+message IdentifyRequest { 
+  Image base_image = 1; 
+  string model = 2;
+}
 
-message IdentifyResponse { repeated float embedding = 1; }
+message IdentifyResponse { 
+  repeated float embedding = 1; 
+  FacialArea facial_area = 2;
+}
+
+// FacialArea Message
+message FacialArea {
+  int32 x = 1;
+  int32 y = 2;
+  int32 w = 3;
+  int32 h = 4;
+}

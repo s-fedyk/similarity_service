@@ -78,4 +78,4 @@ class ImageClassifier(object):
             return None
 
         print("Extracted!")
-        return result[0]["embedding"]
+        return result[0]["embedding"], result[0]["facial_area"]
