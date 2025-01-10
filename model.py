@@ -92,4 +92,9 @@ class ImageClassifier(object):
             return None
 
         print("Extracted!")
+        
+        for res in result:
+            print(f"Area : {res['facial_area']}")
+            print(f"Confidence : {res['face_confidence']}")
+
         return result[0]["embedding"], result[0]["facial_area"]
