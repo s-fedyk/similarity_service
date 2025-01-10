@@ -1,2 +1,3 @@
-# face_search
-# face_search
+# similarity_service
+
+TODO: Write readme
