@@ -110,7 +110,6 @@ class ImageClassifier(object):
             nparr = np.frombuffer(encodedImage, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
-            # 4) Pass the scaled image to DeepFace
             result = DeepFace.represent(
                 img,
                 enforce_detection=False,
