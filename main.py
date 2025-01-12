@@ -3,17 +3,21 @@ import grpc
 from concurrent import futures
 import time
 
-from S3Client import getFromS3, initS3
+from S3Client import getFromS3, initS3, putToS3
 import S3Client
 import model
 from proto import ImageService_pb2
 from proto import ImageService_pb2_grpc
 from proto import Analyzer_pb2
 from proto import Analyzer_pb2_grpc
+from proto import Preprocessor_pb2
+from proto import Preprocessor_pb2_grpc
+
 
 # singleton
 embedder = None
 analyzer = None
+preprocessor = None
 
 class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
     def Identify(self, request, context):
@@ -60,11 +64,39 @@ class AnalysisServicer(Analyzer_pb2_grpc.AnalyzerServicer):
         print(f"Responding with: {response}")
         return response
 
+class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
+    def Preprocess(self, request, context):
+        print(f"Preprocess-{time.time()} {request}")
+        global analyzer
+
+        encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
+
+        img_scaled, scale_w, scale_h = preprocessor.preprocess(encodedImage)
+
+        ret, jpeg_buf = cv2.imencode('.jpg', img_scaled)
+        if not ret:
+            raise ValueError("Failed to encode image to JPEG")
+
+        new_url = f"{request.base_image.url}-processed"
+
+        jpeg_bytes = jpeg_buf.tobytes()
+        putToS3(jpeg_bytes, new_url, S3Client.bucket_name)
+
+        response = Preprocessor_pb2.PreprocessResponse()
+
+        response.processed_image.url = new_url
+        response.scale_w = scale_w
+        response.scale_h = scale_h
+
+        print(f"Responding with: {response}")
+        return response
+
+
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     modelType = os.getenv("MODEL_TYPE")
-    validTypes = ["embedder", "analyzer"]
+    validTypes = ["embedder", "analyzer", "preprocessor"]
     assert(modelType in validTypes)
     initS3()
 
@@ -76,8 +108,14 @@ def serve():
         Analyzer_pb2_grpc.add_AnalyzerServicer_to_server(AnalysisServicer(), server)
         global analyzer
         analyzer = model.FaceAnalyzer()
+    elif modelType == "preprocessor":
+        Preprocessor_pb2_grpc.add_PreprocessorServicer_to_server(PreprocessorServicer(), server)
+        global preprocessor
+        preprocessor = model.ImagePreprocessor()
     else:
         assert(False)
+
+    print(f"Initialized {modelType}")
 
     server.add_insecure_port('[::]:50051')
 

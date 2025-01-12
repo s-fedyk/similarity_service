@@ -76,7 +76,19 @@ def resize_with_scaling(img):
 
         return img_scaled, scale_w, scale_h
 
+class ImagePreprocessor(object):
+    def __init__(self, max_dim=1024):
+        self.max_dim = max_dim
 
+    def preprocess(self, encodedImage):
+        nparr = np.frombuffer(encodedImage, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            raise ValueError("cv2.imdecode returned None. Possibly invalid image data.")
+        
+        orig_h, orig_w = img.shape[:2]
+        img_scaled, scale_w, scale_h = resize_with_scaling(img)
+        return img_scaled, scale_w, scale_h, (orig_w, orig_h)
 
 class ImageClassifier(object):
     def __init__(self):
@@ -97,11 +109,10 @@ class ImageClassifier(object):
         try: 
             nparr = np.frombuffer(encodedImage, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            img_scaled, scale_w, scale_h = resize_with_scaling(img)
-
+            
             # 4) Pass the scaled image to DeepFace
             result = DeepFace.represent(
-                img_scaled,
+                img,
                 enforce_detection=False,
                 model_name=modelName,
                 detector_backend="retinaface"
@@ -121,6 +132,7 @@ class ImageClassifier(object):
         facial_area = first_face["facial_area"]
         print(f"Scaled area : {facial_area}")
 
+        """
         scale_inv_x = 1.0 / scale_w
         scale_inv_y = 1.0 / scale_h
 
@@ -140,6 +152,7 @@ class ImageClassifier(object):
 
         print(f"Adjusted area : {facial_area}")
         print(f"Confidence : {first_face['face_confidence']}")
+        """
 
         embedding = first_face["embedding"]
         return embedding, facial_area

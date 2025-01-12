@@ -45,10 +45,6 @@ def initS3():
         raise
 
 def getFromS3(key, bucket):
-    """
-    Retrieves raw bytes from S3 for the given key.
-    """
-
     print("Getting from S3...")
     assert s3_client is not None, "S3 client not initialized"
     assert bucket_name is not None, "Bucket name not set"
@@ -60,3 +56,21 @@ def getFromS3(key, bucket):
     except (BotoCoreError, ClientError) as e:
         print(f"Failed to retrieve from S3: {e}")
         return None
+
+def putToS3(data, key, bucket):
+    print(f"Uploading to S3 with key: {key}")
+    assert s3_client is not None, "S3 client not initialized"
+    assert bucket_name is not None, "Bucket name not set"
+
+    try:
+        s3_client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=data,
+            ContentType="image/jpeg"
+        )
+        print(f"Successfully uploaded image to S3 with key: {key}")
+        return True
+    except (BotoCoreError, ClientError) as e:
+        print(f"Failed to upload to S3: {e}")
+        return False

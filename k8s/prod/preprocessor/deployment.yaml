@@ -1,0 +1,28 @@
+# my-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: preprocessor-service-deployment
+  labels:
+    app: preprocessor-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: preprocessor-service
+  template:
+    metadata:
+      labels:
+        app: preprocessor-service
+    spec:
+      nodeSelector:
+        role: preprocessor
+      containers:
+      - name: model-container
+        imagePullPolicy: Always
+        image: pomidoro/similarity-service:1
+        ports:
+        - containerPort: 50051  # the container's listening port
+        envFrom:
+          - configMapRef:
+              name: preprocessor-service-config
