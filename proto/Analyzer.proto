@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package Analyser;
+package Analyzer;
 
-service Analyser {
+service Analyzer {
   rpc Analyze(AnalyzeRequest) returns (AnalyzeResponse) {}
 }
 
