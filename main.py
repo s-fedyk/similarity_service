@@ -42,7 +42,7 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
         return response
 
 class AnalysisServicer(Analyzer_pb2_grpc.AnalyserServicer):
-    def Identify(self, request, context):
+    def Analyze(self, request, context):
         print(f"identify-{time.time()} {request}")
         global analyzer
 
