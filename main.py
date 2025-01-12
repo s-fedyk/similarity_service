@@ -70,8 +70,8 @@ def serve():
 
     if modelType == "embedder":
         ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
-        global classifier 
-        classifier = model.ImageClassifier()
+        global embedder 
+        embedder = model.ImageClassifier()
     elif modelType == "analyzer":
         Analyzer_pb2_grpc.add_AnalyzerServicer_to_server(AnalysisServicer(), server)
         global analyzer
