@@ -31,5 +31,5 @@ build: clean
 clean:
 	-rm ./proto/*.py
 proto: clean
-	python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
-	python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/Analyzer.proto
+	python3.10 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
+	python3.10 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/Analyzer.proto

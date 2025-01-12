@@ -89,9 +89,6 @@ class FaceAnalyzer(object):
         DeepFace.build_model("Race", "facial_attribute")
         DeepFace.build_model("Gender", "facial_attribute")
 
-        facenetClient= DeepFace.modeling.cached_models["facial_recognition"]["Facenet512"]
-        facenetClient.model = download_and_extract_model("facenet512_neuron")
-
         return
 
     def analyze_face(self, encodedImage):
@@ -108,7 +105,7 @@ class FaceAnalyzer(object):
             print("Catching Exception!")
             print(e)
 
-        if not result:
+        if not analysis:
             print("No Analysis!")
             return None
 
