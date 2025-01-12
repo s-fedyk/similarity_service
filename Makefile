@@ -16,13 +16,15 @@ eprod:
 	kubectl apply -f k8s/prod/embedder/configmap.yaml
 	kubectl apply -f k8s/prod/embedder/deployment.yaml
 	kubectl apply -f k8s/prod/embedder/service.yaml
-teardown:
-	- kubectl delete deployment similarity-service-deployment
-	- kubectl delete service similarity-service
-	- kubectl delete configmap similarity-service-config
+tearanalyzer:
 	- kubectl delete deployment analyzer-service-deployment
 	- kubectl delete service analyzer-service
 	- kubectl delete configmap analyzer-service-config
+tearembedder:
+	- kubectl delete deployment similarity-service-deployment
+	- kubectl delete service similarity-service
+	- kubectl delete configmap similarity-service-config
+teardown: tearanalyzer tearembedder
 build: clean
 	docker build -t pomidoro/similarity-service:1 .
 	docker push docker.io/pomidoro/similarity-service:1
