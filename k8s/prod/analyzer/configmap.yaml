@@ -4,7 +4,7 @@ metadata:
   name: analyzer-service-config
   namespace: default
 data:
-  MODEL_TYPE: "analyser"
+  MODEL_TYPE: "analyzer"
   REDIS_URL: "similarity-image-cache.wutpwp.ng.0001.use2.cache.amazonaws.com"
   PROMETHEUS_URL: "http://prometheus-server.monitoring.svc.cluster.local"
   S3_BUCKET: "similarity-image-store"

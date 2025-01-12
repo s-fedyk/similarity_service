@@ -61,7 +61,7 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     modelType = os.getenv("MODEL_TYPE")
-    validTypes = ["embedder", "analyser"]
+    validTypes = ["embedder", "analyzer"]
     assert(modelType in validTypes)
     initS3()
 
@@ -69,7 +69,7 @@ def serve():
         ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
         global classifier 
         classifier = model.ImageClassifier()
-    elif modelType == "analyser":
+    elif modelType == "analyzer":
         Analyzer_pb2_grpc.add_AnalyserServicer_to_server(AnalysisServicer(), server)
         global analyser
         classifier = model.FaceAnalyzer()
