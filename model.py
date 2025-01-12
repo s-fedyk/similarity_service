@@ -42,14 +42,6 @@ def download_and_extract_model(model, extract_dir="./"):
 
     return model
 
-class NeuronWrappedModel(tf.keras.Model):
-    def __init__(self, neuron_model):
-        super(NeuronWrappedModel, self).__init__()
-        self.neuron_model = neuron_model
-
-    def call(self, inputs):
-        return self.neuron_model(inputs)
-
 class ImageClassifier(object):
     def __init__(self):
         DeepFace.build_model("Facenet512")
@@ -71,6 +63,8 @@ class ImageClassifier(object):
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
             result = DeepFace.represent(img, enforce_detection=False, model_name=modelName, detector_backend="retinaface")
+
+
         except Exception as e:
             print("Catching Exception!")
             print(e)
@@ -86,3 +80,38 @@ class ImageClassifier(object):
             print(f"Confidence : {res['face_confidence']}")
 
         return result[0]["embedding"], result[0]["facial_area"]
+
+class FaceAnalyzer(object):
+    def __init__(self):
+        DeepFace.build_model("retinaface", "face_detector")
+        DeepFace.build_model("Emotion", "facial_attribute")
+        DeepFace.build_model("Age", "facial_attribute")
+        DeepFace.build_model("Race", "facial_attribute")
+        DeepFace.build_model("Gender", "facial_attribute")
+
+        facenetClient= DeepFace.modeling.cached_models["facial_recognition"]["Facenet512"]
+        facenetClient.model = download_and_extract_model("facenet512_neuron")
+
+        return
+
+    def analyze_face(self, encodedImage):
+        print("Analyzing...")
+        analysis = None
+        try: 
+            nparr = np.frombuffer(encodedImage, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            analysis = DeepFace.analyze(img, enforce_detection=False, detector_backend="retinaface")
+            return analysis
+
+        except Exception as e:
+            print("Catching Exception!")
+            print(e)
+
+        if not result:
+            print("No Analysis!")
+            return None
+
+        print("Analyzed!")
+
+        return analysis

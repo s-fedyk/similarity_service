@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package Analyser;
+
+service Analyser {
+  rpc Analyze(AnalyzeRequest) returns (AnalyzeResponse) {}
+}
+
+message Image { string url = 1; }
+
+message AnalyzeRequest {
+  Image base_image = 1;
+  string model = 2;
+}
+
+message AnalyzeResponse {
+  string age = 1;
+  string gender = 2;
+  string emotion = 3;
+  string race = 4;
+}

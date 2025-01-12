@@ -1,0 +1,31 @@
+# my-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analyzer-service-deployment
+  labels:
+    app: analyzer-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analyzer-service
+  template:
+    metadata:
+      labels:
+        app: analyzer-service
+    spec:
+      nodeSelector:
+        role: inference
+      containers:
+      - name: model-container
+        imagePullPolicy: Always
+        image: pomidoro/similarity-service:1
+        ports:
+        - containerPort: 50051  # the container's listening port
+        envFrom:
+          - configMapRef:
+              name: analyzer-service-config
+        resources:
+          limits:
+            aws.amazon.com/neuron: 1
