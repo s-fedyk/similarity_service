@@ -7,7 +7,7 @@ dev:
 	kubectl apply -f k8s/dev/analyzer/configmap.yaml
 	kubectl apply -f k8s/dev/analyzer/deployment.yaml
 	kubectl apply -f k8s/dev/analyzer/service.yaml
-prod: aprod eprod
+prod: aprod eprod pprod
 aprod:
 	kubectl apply -f k8s/prod/analyzer/configmap.yaml
 	kubectl apply -f k8s/prod/analyzer/deployment.yaml

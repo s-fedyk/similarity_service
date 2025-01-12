@@ -43,38 +43,37 @@ def download_and_extract_model(model, extract_dir="./"):
     return model
 
 def resize_with_scaling(img):
-# 1) Decode
-        if img is None:
-            raise ValueError("cv2.imdecode returned None. Possibly invalid image data.")
+    if img is None:
+        raise ValueError("cv2.imdecode returned None. Possibly invalid image data.")
 
-        orig_h, orig_w = img.shape[:2]
+    orig_h, orig_w = img.shape[:2]
 
-        # 2) Compute a scale factor so the image doesn’t exceed 1024×1024
-        max_dim = 1024
-        scale_w = 1.0
-        scale_h = 1.0
-        if orig_w > max_dim or orig_h > max_dim:
-            # We’ll scale by whichever side is bigger
-            # but you could also do a uniform approach
-            if orig_w > orig_h:
-                scale_w = max_dim / float(orig_w)
-                scale_h = scale_w
-            else:
-                scale_h = max_dim / float(orig_h)
-                scale_w = scale_h
-
-        new_w = int(orig_w * scale_w)
-        new_h = int(orig_h * scale_h)
-
-        # 3) Resize if needed
-        if new_w < orig_w or new_h < orig_h:
-            print(f"Downscaling from {orig_w}x{orig_h} to {new_w}x{new_h}")
-            img_scaled = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    # 2) Compute a scale factor so the image doesn’t exceed 1024×1024
+    max_dim = 1024
+    scale_w = 1.0
+    scale_h = 1.0
+    if orig_w > max_dim or orig_h > max_dim:
+        # We’ll scale by whichever side is bigger
+        # but you could also do a uniform approach
+        if orig_w > orig_h:
+            scale_w = max_dim / float(orig_w)
+            scale_h = scale_w
         else:
-            # If we don’t need to downscale, just use the original
-            img_scaled = img
+            scale_h = max_dim / float(orig_h)
+            scale_w = scale_h
 
-        return img_scaled, scale_w, scale_h
+    new_w = int(orig_w * scale_w)
+    new_h = int(orig_h * scale_h)
+
+    # 3) Resize if needed
+    if new_w < orig_w or new_h < orig_h:
+        print(f"Downscaling from {orig_w}x{orig_h} to {new_w}x{new_h}")
+        img_scaled = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    else:
+        # If we don’t need to downscale, just use the original
+        img_scaled = img
+
+    return img_scaled, scale_w, scale_h
 
 class ImagePreprocessor(object):
     def __init__(self, max_dim=1024):
@@ -171,37 +170,8 @@ class FaceAnalyzer(object):
         try: 
             nparr = np.frombuffer(encodedImage, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if img is None:
-                raise ValueError("cv2.imdecode returned None. Possibly invalid image data.")
 
-            orig_h, orig_w = img.shape[:2]
-
-            # 2) Compute a scale factor so the image doesn’t exceed 1024×1024
-            max_dim = 1024
-            scale_w = 1.0
-            scale_h = 1.0
-            if orig_w > max_dim or orig_h > max_dim:
-                # We’ll scale by whichever side is bigger
-                # but you could also do a uniform approach
-                if orig_w > orig_h:
-                    scale_w = max_dim / float(orig_w)
-                    scale_h = scale_w
-                else:
-                    scale_h = max_dim / float(orig_h)
-                    scale_w = scale_h
-
-            new_w = int(orig_w * scale_w)
-            new_h = int(orig_h * scale_h)
-
-            # 3) Resize if needed
-            if new_w < orig_w or new_h < orig_h:
-                print(f"Downscaling from {orig_w}x{orig_h} to {new_w}x{new_h}")
-                img_scaled = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
-            else:
-                # If we don’t need to downscale, just use the original
-                img_scaled = img
-
-            analysis = DeepFace.analyze(img_scaled, enforce_detection=False, detector_backend="retinaface")
+            analysis = DeepFace.analyze(img, enforce_detection=False, detector_backend="retinaface")
 
         except Exception as e:
             print("Catching Exception!")

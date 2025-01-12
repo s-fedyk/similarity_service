@@ -150,8 +150,9 @@ RUN ${PIP} install --no-cache-dir -r requirements.txt -c base_requirements.txt
 COPY . .
 
 RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
-
 RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/Analyzer.proto
+RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/Preprocessor.proto
+
 
 EXPOSE 50051
 
