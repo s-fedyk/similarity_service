@@ -151,7 +151,7 @@ COPY . .
 
 RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
 
-RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/Analyzer.proto.proto
+RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/Analyzer.proto
 
 EXPOSE 50051
 
