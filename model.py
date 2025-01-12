@@ -99,7 +99,6 @@ class FaceAnalyzer(object):
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
             analysis = DeepFace.analyze(img, enforce_detection=False, detector_backend="retinaface")
-            return analysis
 
         except Exception as e:
             print("Catching Exception!")
@@ -110,5 +109,6 @@ class FaceAnalyzer(object):
             return None
 
         print("Analyzed!")
+        print(analysis)
 
-        return analysis
+        return analysis[0]

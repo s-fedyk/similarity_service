@@ -13,7 +13,7 @@ from proto import Analyzer_pb2_grpc
 
 # singleton
 embedder = None
-analyser = None
+analyzer = None
 
 class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
     def Identify(self, request, context):
@@ -41,19 +41,22 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
         print(f"Responding with: {response}")
         return response
 
-class AnalysisServicer(Analyzer_pb2_grpc.AnalyserServicer):
+class AnalysisServicer(Analyzer_pb2_grpc.AnalyzerServicer):
     def Analyze(self, request, context):
         print(f"identify-{time.time()} {request}")
         global analyzer
 
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
-        embedding,faceArea = analyser.analyze_face(encodedImage)
+        analysis = analyzer.analyze_face(encodedImage)
 
         response = Analyzer_pb2.AnalyzeResponse()
 
-        print(response)
-        
+        response.age = str(analysis["age"])
+        response.gender = analysis["dominant_gender"]
+        response.race = analysis["dominant_race"]
+        response.emotion = analysis["dominant_emotion"]
+
         print(f"Responding with: {response}")
         return response
 
@@ -70,9 +73,9 @@ def serve():
         global classifier 
         classifier = model.ImageClassifier()
     elif modelType == "analyzer":
-        Analyzer_pb2_grpc.add_AnalyserServicer_to_server(AnalysisServicer(), server)
-        global analyser
-        classifier = model.FaceAnalyzer()
+        Analyzer_pb2_grpc.add_AnalyzerServicer_to_server(AnalysisServicer(), server)
+        global analyzer
+        analyzer = model.FaceAnalyzer()
     else:
         assert(False)
 
