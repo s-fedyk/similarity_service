@@ -1,5 +1,6 @@
 # my-service.yaml
-apiVersion: v1 kind: Service
+apiVersion: v1 
+kind: Service
 metadata:
   name: similarity-service
   labels:
