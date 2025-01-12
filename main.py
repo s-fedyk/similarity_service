@@ -28,7 +28,13 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
         response.facial_area.x = faceArea["x"]
         response.facial_area.y = faceArea["y"]
 
-        print("Response success!")
+        response.facial_area.left_eye.x = faceArea["left_eye"][0]
+        response.facial_area.left_eye.y = faceArea["left_eye"][1]
+
+        response.facial_area.right_eye.x = faceArea["right_eye"][0]
+        response.facial_area.right_eye.y = faceArea["right_eye"][1]
+
+        print(f"Responding with: {response}")
         return response
 
 def serve():

@@ -53,23 +53,13 @@ class NeuronWrappedModel(tf.keras.Model):
 class ImageClassifier(object):
     def __init__(self):
         DeepFace.build_model("Facenet512")
+        DeepFace.build_model("retinaface", "face_detector")
 
         facenetClient= DeepFace.modeling.cached_models["facial_recognition"]["Facenet512"]
-        
         facenetClient.model = download_and_extract_model("facenet512_neuron")
-        print("model is setup")
 
-        retinafaceClient = RetinaFaceClient()
-        DeepFace.modeling.cached_models["face_detector"]["retinaface"] = retinafaceClient
-
-        neuron_model = download_and_extract_model("retinaface_neuron")
-
-        model = tf.function(
-                    neuron_model,
-                    input_signature=(tf.TensorSpec(shape=[None, None, None, 3], dtype=np.float32),),
-                )
-
-        retinafaceClient.model = model
+        #retinafaceClient = DeepFace.modeling.cached_models["face_detector"]["retinaface"]
+        #retinafaceClient.model = download_and_extract_model("retinaface_neuron")
 
         return
 
@@ -78,9 +68,7 @@ class ImageClassifier(object):
         result = None
         try: 
             nparr = np.frombuffer(encodedImage, np.uint8)
-            print(len(nparr))
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            print(len(img))
 
             result = DeepFace.represent(img, enforce_detection=False, model_name=modelName, detector_backend="retinaface")
         except Exception as e:
