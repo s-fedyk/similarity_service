@@ -151,6 +151,8 @@ COPY . .
 
 RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/ImageService.proto
 
+RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./proto/Analyzer.proto.proto
+
 EXPOSE 50051
 
 ENV XLA_USE_BF16="1"
