@@ -1,6 +1,9 @@
 from deepface.models.face_detection.RetinaFace import RetinaFaceClient
+from retinaface import RetinaFace
 import numpy as np
+import retinaface
 import S3Client
+from PIL import Image, ExifTags
 import tensorflow_neuron as tfn
 import zipfile
 import tempfile
@@ -11,27 +14,21 @@ import os
 from deepface import DeepFace
 
 def download_and_extract_model(model, extract_dir="./"):
-    """
-    Downloads a model archive from S3 and extracts it to the specified directory.
-    """
     print(f"Downloading {model}")
     model_bytes = S3Client.getFromS3(f"{model}.zip", "similarity-model-store")
     if model_bytes is None:
         raise ValueError(f"Failed to download model: {model}")
     
-    # Save the model to a temporary zip file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
         tmp_file.write(model_bytes)
         tmp_file_path = tmp_file.name
         print(f"Model downloaded and saved to temporary file: {tmp_file_path}")
     
-    # Extract the zip file to the extract_dir
     with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
         zip_ref.extractall(extract_dir)
         print()
         print(f"Model extracted to directory: {extract_dir}")
     
-    # Remove the temporary zip file
     os.remove(tmp_file_path)
     print(f"Temporary file {tmp_file_path} removed.")
 
@@ -48,13 +45,10 @@ def resize_with_scaling(img):
 
     orig_h, orig_w = img.shape[:2]
 
-    # 2) Compute a scale factor so the image doesn’t exceed 1024×1024
     max_dim = 1024
     scale_w = 1.0
     scale_h = 1.0
     if orig_w > max_dim or orig_h > max_dim:
-        # We’ll scale by whichever side is bigger
-        # but you could also do a uniform approach
         if orig_w > orig_h:
             scale_w = max_dim / float(orig_w)
             scale_h = scale_w
@@ -65,29 +59,70 @@ def resize_with_scaling(img):
     new_w = int(orig_w * scale_w)
     new_h = int(orig_h * scale_h)
 
-    # 3) Resize if needed
     if new_w < orig_w or new_h < orig_h:
         print(f"Downscaling from {orig_w}x{orig_h} to {new_w}x{new_h}")
         img_scaled = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
     else:
-        # If we don’t need to downscale, just use the original
         img_scaled = img
 
+    h, w = img_scaled.shape[:2]
+    if h < max_dim or w < max_dim:
+        pad_bottom = max_dim - h
+        pad_right = max_dim - w
+
+        img_scaled = cv2.copyMakeBorder(
+            img_scaled,
+            0, pad_bottom, 0, pad_right,
+            borderType=cv2.BORDER_CONSTANT,
+            value=[0, 0, 0]  
+        )
+    else:
+        img_scaled = img_scaled
+
     return img_scaled, scale_w, scale_h
+
+def pil_to_cv2(image):
+    # Convert a PIL image to an OpenCV format (BGR)
+    image = np.array(image)
+    # Convert RGB to BGR if needed
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    return image
+
+def load_image_with_correct_orientation(encodedImage):
+    from io import BytesIO
+    image = Image.open(BytesIO(encodedImage))
+    
+    try:
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation]=="Orientation":
+                break
+
+        exif = image._getexif()
+        if exif is not None:
+            orientation_value = exif.get(orientation, None)
+            if orientation_value == 3:
+                image = image.rotate(180, expand=True)
+            elif orientation_value == 6:
+                image = image.rotate(270, expand=True)
+            elif orientation_value == 8:
+                image = image.rotate(90, expand=True)
+    except Exception as e:
+        print("Error handling EXIF orientation:", e)
+    
+    return pil_to_cv2(image)
 
 class ImagePreprocessor(object):
     def __init__(self, max_dim=1024):
         self.max_dim = max_dim
 
     def preprocess(self, encodedImage):
-        nparr = np.frombuffer(encodedImage, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = load_image_with_correct_orientation(encodedImage)
         if img is None:
             raise ValueError("cv2.imdecode returned None. Possibly invalid image data.")
         
-        orig_h, orig_w = img.shape[:2]
         img_scaled, scale_w, scale_h = resize_with_scaling(img)
-        return img_scaled, scale_w, scale_h, (orig_w, orig_h)
+
+        return img_scaled, scale_w, scale_h
 
 class ImageClassifier(object):
     def __init__(self):
@@ -97,8 +132,10 @@ class ImageClassifier(object):
         facenetClient= DeepFace.modeling.cached_models["facial_recognition"]["Facenet512"]
         facenetClient.model = download_and_extract_model("facenet512_neuron")
 
-        #retinafaceClient = DeepFace.modeling.cached_models["face_detector"]["retinaface"]
-        #retinafaceClient.model = download_and_extract_model("retinaface_neuron")
+        retinafaceClient = DeepFace.modeling.cached_models["face_detector"]["retinaface"]
+        retinafaceClient.model = download_and_extract_model("retinaface_neuron")
+
+        self.retinafaceClient = retinafaceClient
 
         return
 
@@ -106,14 +143,30 @@ class ImageClassifier(object):
         print("Getting embedding...")
         result = None
         try: 
+            print("decoding image...")
             nparr = np.frombuffer(encodedImage, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            print(img.shape)
+            print("try extraction")
+            result = RetinaFace.detect_faces(img, 0.9, self.retinafaceClient.model, False)["face_1"]
+
+            print(result)
+            x_min = result["facial_area"][0]
+            y_min = result["facial_area"][1]
+            x_max = result["facial_area"][2]
+            y_max = result["facial_area"][3]
+
+            face = img[y_min:y_max, x_min:x_max]
+            facial_area = result["landmarks"]
+
+            face = img[y_min:y_max, x_min:x_max]            
             
             result = DeepFace.represent(
-                img,
+                face,
                 enforce_detection=False,
                 model_name=modelName,
-                detector_backend="retinaface"
+                detector_backend="skip"
             )
 
         except Exception as e:
@@ -127,32 +180,16 @@ class ImageClassifier(object):
         print("Extracted!")
         
         first_face = result[0]
-        facial_area = first_face["facial_area"]
         print(f"Scaled area : {facial_area}")
-
-        """
-        scale_inv_x = 1.0 / scale_w
-        scale_inv_y = 1.0 / scale_h
-
-        facial_area["x"] = int(facial_area["x"] * scale_inv_x)
-        facial_area["y"] = int(facial_area["y"] * scale_inv_y)
-        facial_area["w"] = int(facial_area["w"] * scale_inv_x)
-        facial_area["h"] = int(facial_area["h"] * scale_inv_y)
-
-        left_eye_x = int(facial_area['left_eye'][0] * scale_inv_x) 
-        left_eye_y = int(facial_area['left_eye'][1] * scale_inv_y) 
-
-        right_eye_x = int(facial_area['right_eye'][0] * scale_inv_x) 
-        right_eye_y = int(facial_area['right_eye'][1] * scale_inv_y) 
-
-        facial_area['left_eye'] = (left_eye_x, left_eye_y)
-        facial_area['right_eye'] = (right_eye_x, right_eye_y)
-
-        print(f"Adjusted area : {facial_area}")
-        print(f"Confidence : {first_face['face_confidence']}")
-        """
+        print(first_face)
 
         embedding = first_face["embedding"]
+
+        facial_area["x"] = x_min
+        facial_area["w"] = x_max - x_min
+        facial_area["y"] = y_min
+        facial_area["h"] = y_max - y_min
+
         return embedding, facial_area
 class FaceAnalyzer(object):
     def __init__(self):

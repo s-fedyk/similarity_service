@@ -6,13 +6,14 @@ import time
 from S3Client import getFromS3, initS3, putToS3
 import S3Client
 import model
+import cv2
+
 from proto import ImageService_pb2
 from proto import ImageService_pb2_grpc
 from proto import Analyzer_pb2
 from proto import Analyzer_pb2_grpc
 from proto import Preprocessor_pb2
 from proto import Preprocessor_pb2_grpc
-
 
 # singleton
 embedder = None
@@ -28,19 +29,20 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
 
         embedding,faceArea = embedder.extract_embedding(encodedImage, "Facenet512")
 
+        print("finished extraction...")
         response = ImageService_pb2.IdentifyResponse()
         response.embedding.extend(embedding)
 
-        response.facial_area.w = faceArea["w"]
-        response.facial_area.h = faceArea["h"]
-        response.facial_area.x = faceArea["x"]
-        response.facial_area.y = faceArea["y"]
+        response.facial_area.w = int(faceArea["w"])
+        response.facial_area.h = int(faceArea["h"])
+        response.facial_area.x = int(faceArea["x"])
+        response.facial_area.y = int(faceArea["y"])
 
-        response.facial_area.left_eye.x = faceArea["left_eye"][0]
-        response.facial_area.left_eye.y = faceArea["left_eye"][1]
+        response.facial_area.left_eye.x = int(faceArea["left_eye"][0])
+        response.facial_area.left_eye.y = int(faceArea["left_eye"][1])
 
-        response.facial_area.right_eye.x = faceArea["right_eye"][0]
-        response.facial_area.right_eye.y = faceArea["right_eye"][1]
+        response.facial_area.right_eye.x = int(faceArea["right_eye"][0])
+        response.facial_area.right_eye.y = int(faceArea["right_eye"][1])
 
         print(f"Responding with: {response}")
         return response
@@ -72,6 +74,7 @@ class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
         img_scaled, scale_w, scale_h = preprocessor.preprocess(encodedImage)
+        print(f"Scales are w:{scale_w}, h:{scale_h}")
 
         ret, jpeg_buf = cv2.imencode('.jpg', img_scaled)
         if not ret:
@@ -81,6 +84,7 @@ class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
 
         jpeg_bytes = jpeg_buf.tobytes()
         putToS3(jpeg_bytes, new_url, S3Client.bucket_name)
+        
 
         response = Preprocessor_pb2.PreprocessResponse()
 
@@ -88,7 +92,6 @@ class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
         response.scale_w = scale_w
         response.scale_h = scale_h
 
-        print(f"Responding with: {response}")
         return response
 
 

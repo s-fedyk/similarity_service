@@ -12,6 +12,6 @@ message PreprocessRequest { Image base_image = 1; }
 
 message PreprocessResponse {
   Image processed_image = 1;
-  int32 scale_w = 2;
-  int32 scale_h = 3;
+  float scale_w = 2;
+  float scale_h = 3;
 }
