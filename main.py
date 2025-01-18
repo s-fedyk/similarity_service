@@ -20,30 +20,20 @@ embedder = None
 analyzer = None
 preprocessor = None
 
-class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
-    def Identify(self, request, context):
+class EmbedServicer(ImageService_pb2_grpc.EmbedderServicer):
+    def Embed(self, request, context):
         print(f"identify-{time.time()} {request}")
         global embedder
 
         start = time.time()
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
-        embedding,faceArea = embedder.extract_embedding(encodedImage, "Facenet512")
+        embedding = embedder.extract_embedding(encodedImage, "Facenet512")
 
         print("finished extraction...")
-        response = ImageService_pb2.IdentifyResponse()
+
+        response = ImageService_pb2.EmbedResponse()
         response.embedding.extend(embedding)
-
-        response.facial_area.w = int(faceArea["w"])
-        response.facial_area.h = int(faceArea["h"])
-        response.facial_area.x = int(faceArea["x"])
-        response.facial_area.y = int(faceArea["y"])
-
-        response.facial_area.left_eye.x = int(faceArea["left_eye"][0])
-        response.facial_area.left_eye.y = int(faceArea["left_eye"][1])
-
-        response.facial_area.right_eye.x = int(faceArea["right_eye"][0])
-        response.facial_area.right_eye.y = int(faceArea["right_eye"][1])
 
         end = time.time()
         print(f"Responding with: {response}, took {end-start}")
@@ -80,10 +70,9 @@ class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
 
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
-        img_scaled, scale_w, scale_h, top_pad, left_pad = preprocessor.preprocess(encodedImage)
-        print(f"Scales are w:{scale_w}, h:{scale_h}")
+        face,faceArea = preprocessor.preprocess(encodedImage)
 
-        ret, jpeg_buf = cv2.imencode('.jpg', img_scaled)
+        ret, jpeg_buf = cv2.imencode('.jpg', face)
         if not ret:
             raise ValueError("Failed to encode image to JPEG")
 
@@ -95,10 +84,17 @@ class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
         response = Preprocessor_pb2.PreprocessResponse()
 
         response.processed_image.url = new_url
-        response.scale_w = scale_w
-        response.scale_h = scale_h
-        response.top_pad = top_pad
-        response.left_pad = left_pad
+        
+        response.facial_area.w = int(faceArea["w"])
+        response.facial_area.h = int(faceArea["h"])
+        response.facial_area.x = int(faceArea["x"])
+        response.facial_area.y = int(faceArea["y"])
+
+        response.facial_area.left_eye.x = int(faceArea["left_eye"][0])
+        response.facial_area.left_eye.y = int(faceArea["left_eye"][1])
+
+        response.facial_area.right_eye.x = int(faceArea["right_eye"][0])
+        response.facial_area.right_eye.y = int(faceArea["right_eye"][1])
         
         end = time.time()
         print(f"Responding with: {response}, took {end-start}")
@@ -114,7 +110,7 @@ def serve():
     initS3()
 
     if modelType == "embedder":
-        ImageService_pb2_grpc.add_ImageServiceServicer_to_server(ImageServicer(), server)
+        ImageService_pb2_grpc.add_EmbedderServicer_to_server(EmbedServicer(), server)
         global embedder 
         embedder = model.ImageClassifier()
     elif modelType == "analyzer":

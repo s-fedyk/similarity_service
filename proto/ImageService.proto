@@ -1,35 +1,16 @@
 syntax = "proto3";
 
-package ImageService;
+package Embedder;
 
-service ImageService {
-  // takes a reference image, and a list of images to compare against
-  rpc Identify(IdentifyRequest) returns (IdentifyResponse) {}
+service Embedder {
+  rpc Embed(EmbedRequest) returns (EmbedResponse) {}
 }
 
 message Image { string url = 1; }
 
-message IdentifyRequest {
+message EmbedRequest {
   Image base_image = 1;
   string model = 2;
 }
 
-message IdentifyResponse {
-  repeated float embedding = 1;
-  FacialArea facial_area = 2;
-}
-
-// FacialArea Message
-message FacialArea {
-  int32 x = 1;
-  int32 y = 2;
-  int32 w = 3;
-  int32 h = 4;
-  eye left_eye = 5;
-  eye right_eye = 6;
-}
-
-message eye {
-  int32 x = 1;
-  int32 y = 2;
-}
+message EmbedResponse { repeated float embedding = 1; }

@@ -43,7 +43,12 @@ def download_and_extract_model(model, extract_dir="./"):
 
 class ImagePreprocessor(object):
     def __init__(self, max_dim=800):
+        DeepFace.build_model("retinaface", "face_detector")
         self.max_dim = max_dim
+        retinafaceClient = DeepFace.modeling.cached_models["face_detector"]["retinaface"]
+        retinafaceClient.model = download_and_extract_model("retinaface_neuron")
+
+        self.retinafaceClient = retinafaceClient
 
     def resize_with_scaling(self, img):
         if img is None:
@@ -87,7 +92,45 @@ class ImagePreprocessor(object):
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)        
         if img is None:
             raise ValueError("cv2.imdecode returned None. Possibly invalid image data.")
-        return self.resize_with_scaling(img)
+
+        img_scaled, scale_h, scale_w, _, _ = self.resize_with_scaling(img)
+
+        print("try extraction")
+        result = RetinaFace.detect_faces(img_scaled, 0.9, self.retinafaceClient.model, False)["face_1"]
+
+        scale_inv_x = 1.0 / scale_h
+        scale_inv_y = 1.0 / scale_w
+
+        x_min = result["facial_area"][0]
+        y_min = result["facial_area"][1]
+        x_max = result["facial_area"][2]
+        y_max = result["facial_area"][3]
+
+        facial_area = result["landmarks"]
+
+        print("Facial area is:")
+        print(facial_area)
+
+        facial_area["x"] = x_min * scale_inv_x
+        facial_area["w"] = (x_max - x_min) * scale_inv_y
+        facial_area["y"] = y_min * scale_inv_x
+        facial_area["h"] = (y_max - y_min) * scale_inv_y
+
+        print("converting eyes")
+        left_eye = [facial_area["left_eye"][0] * scale_inv_x, facial_area["left_eye"][1] * scale_inv_y]
+        right_eye = [facial_area["right_eye"][0] * scale_inv_x, facial_area["right_eye"][1] * scale_inv_y]
+
+        facial_area["left_eye"] = left_eye
+        facial_area["right_eye"] = right_eye
+
+        print("eyes converted")
+
+        face = img_scaled[y_min:y_max, x_min:x_max]
+        print(f"shape size {len(face), len(face[0])}")
+
+        print("finished extraction")
+
+        return face, facial_area
 
 class ImageClassifier(object):
     def __init__(self):
@@ -113,24 +156,8 @@ class ImageClassifier(object):
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
             print(img.shape)
-            print("try extraction")
-            result = RetinaFace.detect_faces(img, 0.9, self.retinafaceClient.model, False)["face_1"]
-            x_min = result["facial_area"][0]
-            y_min = result["facial_area"][1]
-            x_max = result["facial_area"][2]
-            y_max = result["facial_area"][3]
-
-            face = img[y_min:y_max, x_min:x_max]
-            facial_area = result["landmarks"]
-            facial_area["x"] = x_min
-            facial_area["w"] = x_max - x_min
-            facial_area["y"] = y_min
-            facial_area["h"] = y_max - y_min
-
-            face = img[y_min:y_max, x_min:x_max]            
-
             result = DeepFace.represent(
-                face,
+                img, #TODO make this take in the face, 
                 enforce_detection=False,
                 model_name=modelName,
                 detector_backend="skip"
@@ -147,12 +174,10 @@ class ImageClassifier(object):
         print("Extracted!")
         
         first_face = result[0]
-        print(f"Scaled area : {facial_area}")
-        print(first_face)
 
         embedding = first_face["embedding"]
         
-        return embedding, facial_area
+        return embedding
 class FaceAnalyzer(object):
     def __init__(self):
         DeepFace.build_model("retinaface", "face_detector")

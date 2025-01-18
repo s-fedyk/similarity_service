@@ -12,6 +12,19 @@ message PreprocessRequest { Image base_image = 1; }
 
 message PreprocessResponse {
   Image processed_image = 1;
-  float scale_w = 2;
-  float scale_h = 3;
+  FacialArea facial_area = 6;
+}
+
+message FacialArea {
+  int32 x = 1;
+  int32 y = 2;
+  int32 w = 3;
+  int32 h = 4;
+  eye left_eye = 5;
+  eye right_eye = 6;
+}
+
+message eye {
+  int32 x = 1;
+  int32 y = 2;
 }
