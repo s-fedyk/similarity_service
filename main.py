@@ -25,6 +25,7 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
         print(f"identify-{time.time()} {request}")
         global embedder
 
+        start = time.time()
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
         embedding,faceArea = embedder.extract_embedding(encodedImage, "Facenet512")
@@ -44,7 +45,8 @@ class ImageServicer(ImageService_pb2_grpc.ImageServiceServicer):
         response.facial_area.right_eye.x = int(faceArea["right_eye"][0])
         response.facial_area.right_eye.y = int(faceArea["right_eye"][1])
 
-        print(f"Responding with: {response}")
+        end = time.time()
+        print(f"Responding with: {response}, took {end-start}")
         return response
 
 class AnalysisServicer(Analyzer_pb2_grpc.AnalyzerServicer):
@@ -52,6 +54,7 @@ class AnalysisServicer(Analyzer_pb2_grpc.AnalyzerServicer):
         print(f"identify-{time.time()} {request}")
         global analyzer
 
+        start = time.time()
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
         analysis = analyzer.analyze_face(encodedImage)
@@ -63,17 +66,21 @@ class AnalysisServicer(Analyzer_pb2_grpc.AnalyzerServicer):
         response.race = analysis["dominant_race"]
         response.emotion = analysis["dominant_emotion"]
 
-        print(f"Responding with: {response}")
+        end = time.time()
+
+        print(f"Responding with: {response}, took {end-start}")
         return response
 
 class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
     def Preprocess(self, request, context):
         print(f"Preprocess-{time.time()} {request}")
         global analyzer
+        
+        start = time.time()
 
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
 
-        img_scaled, scale_w, scale_h = preprocessor.preprocess(encodedImage)
+        img_scaled, scale_w, scale_h, top_pad, left_pad = preprocessor.preprocess(encodedImage)
         print(f"Scales are w:{scale_w}, h:{scale_h}")
 
         ret, jpeg_buf = cv2.imencode('.jpg', img_scaled)
@@ -84,16 +91,19 @@ class PreprocessorServicer(Preprocessor_pb2_grpc.PreprocessorServicer):
 
         jpeg_bytes = jpeg_buf.tobytes()
         putToS3(jpeg_bytes, new_url, S3Client.bucket_name)
-        
 
         response = Preprocessor_pb2.PreprocessResponse()
 
         response.processed_image.url = new_url
         response.scale_w = scale_w
         response.scale_h = scale_h
+        response.top_pad = top_pad
+        response.left_pad = left_pad
+        
+        end = time.time()
+        print(f"Responding with: {response}, took {end-start}")
 
         return response
-
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -114,7 +124,9 @@ def serve():
     elif modelType == "preprocessor":
         Preprocessor_pb2_grpc.add_PreprocessorServicer_to_server(PreprocessorServicer(), server)
         global preprocessor
-        preprocessor = model.ImagePreprocessor()
+        max_dim = os.getenv("PREPROCESS_SIZE")
+        assert(max_dim is not None)
+        preprocessor = model.ImagePreprocessor(int(max_dim))
     else:
         assert(False)
 
