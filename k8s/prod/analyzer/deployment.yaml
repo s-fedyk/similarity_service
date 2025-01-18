@@ -16,7 +16,7 @@ spec:
         app: analyzer-service
     spec:
       nodeSelector:
-        role: inference
+        role: analyzer
       containers:
       - name: model-container
         imagePullPolicy: Always
