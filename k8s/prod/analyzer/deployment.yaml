@@ -15,7 +15,6 @@ spec:
       labels:
         app: analyzer-service
     spec:
-      sessionAffinity: None
       nodeSelector:
         role: analyzer
       containers:
