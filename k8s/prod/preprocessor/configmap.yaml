@@ -5,7 +5,5 @@ metadata:
   namespace: default
 data:
   MODEL_TYPE: "preprocessor"
-  REDIS_URL: "similarity-image-cache.wutpwp.ng.0001.use2.cache.amazonaws.com"
-  PROMETHEUS_URL: "http://prometheus-server.monitoring.svc.cluster.local"
   S3_BUCKET: "similarity-image-store"
-  PREPROCESS_SIZE: "1024"
+  PREPROCESS_SIZE: "800"
