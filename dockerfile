@@ -157,6 +157,6 @@ RUN ${PYTHON} -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./prot
 EXPOSE 50051
 
 ENV XLA_USE_BF16="1"
-ENV NEURONCORE_GROUP_SIZES="1,3"
+ENV NEURONCORE_GROUP_SIZES="2,2"
 
 CMD ["python3.10", "main.py"]

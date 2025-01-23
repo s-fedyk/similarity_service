@@ -46,15 +46,25 @@ class AnalysisServicer(Analyzer_pb2_grpc.AnalyzerServicer):
 
         start = time.time()
         encodedImage = getFromS3(request.base_image.url, S3Client.bucket_name)
+        actions = tuple(request.model)
+        print(f"Actions are: {actions}")
 
-        analysis = analyzer.analyze_face(encodedImage)
-
+        analysis = analyzer.analyze_face(encodedImage, actions)
         response = Analyzer_pb2.AnalyzeResponse()
+        print(analysis)
+        for action in actions:
+            if f"dominant_{action}" in analysis.keys():
+                result = analysis[f"dominant_{action}"]
+            else:
+                result = analysis[action]
 
-        response.age = str(analysis["age"])
-        response.gender = analysis["dominant_gender"]
-        response.race = analysis["dominant_race"]
-        response.emotion = analysis["dominant_emotion"]
+            print("Appending...")
+            analysisResult = Analyzer_pb2.Analysis()
+            analysisResult.model = action
+            analysisResult.result = str(result)
+
+            response.results.append(analysisResult)
+            print("Appended!")
 
         end = time.time()
 

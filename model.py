@@ -180,7 +180,6 @@ class ImageClassifier(object):
         return embedding
 class FaceAnalyzer(object):
     def __init__(self):
-        DeepFace.build_model("retinaface", "face_detector")
         DeepFace.build_model("Emotion", "facial_attribute")
         DeepFace.build_model("Age", "facial_attribute")
         DeepFace.build_model("Race", "facial_attribute")
@@ -188,14 +187,14 @@ class FaceAnalyzer(object):
 
         return
 
-    def analyze_face(self, encodedImage):
+    def analyze_face(self, encodedImage, actions=("emotion", "age", "gender", "race")):
         print("Analyzing...")
         analysis = None
         try: 
             nparr = np.frombuffer(encodedImage, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-            analysis = DeepFace.analyze(img, enforce_detection=False, detector_backend="retinaface")
+            analysis = DeepFace.analyze(img, enforce_detection=False,actions=actions, detector_backend="skip")
 
         except Exception as e:
             print("Catching Exception!")
